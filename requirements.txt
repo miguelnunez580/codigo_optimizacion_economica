@@ -1,0 +1,6 @@
+pandas
+pyomo
+requests
+seaborn
+python-dotenv
+pyyaml

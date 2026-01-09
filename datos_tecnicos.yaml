@@ -1,0 +1,23 @@
+Aerotermia de alta:
+  cop: 3.40  # Unidades: -
+  err: 3.8  # Unidades: -
+  temperatura: 60  # Unidades: ºC
+Aerotermia de baja:
+  cop: 4.69  # Unidades: -
+  err: 4.57  # Unidades: -
+  temperatura: 35  # Unidades: ºC
+Gas:
+  eficiencia: 0.92  # Unidades: -
+  Ciclo de vida: 15  # Unidades: años
+Deposito:
+  Limite: 80.0  # Almacenaje máximo admisible en el depósito de inercia. Unidades: Litros
+  eficiencia: 0.0058  # Unidades: W/(K·L)
+Bomba de calor:
+  Limite: 16000.0  # Potencia máxima admisible de la bomba de calor. Unidades: W
+  Ciclo de vida: 20 # Unidades: años
+Aire acondicionado:
+  cop: 4.5 # Unidades: -
+  err: 3.8 # Unidades: -
+  split: 3 # Unidades: Unidad
+  habitaciones: 8 # Unidades: Unidad
+  precio Ud. Interior: 720 # Unidades: €
