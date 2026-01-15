@@ -9,11 +9,11 @@ import pyomo.environ as pyo
 from dotenv import load_dotenv
 
 
-def calculo_gas(df, inversion):
+def calculo_gas(df, c_i):
     """Funcion para la optimización económica de sistemas de climatización por gas
 
     :param df: Dataframe con todos los parámetros que tienen carácter horario
-    :param inversion: Coste de la instalación sin tener en cuenta el precio de la caldera de gas
+    :param c_i: Coste invariable de la instalación sin tener en cuenta el precio de la caldera de gas
     """
     with open('datos_tecnicos.yaml', "r", encoding="utf-8") as f:
         datos = yaml.safe_load(f)
@@ -22,8 +22,7 @@ def calculo_gas(df, inversion):
 
     cargas = df["cargas"].to_numpy()
     precio = df["precio_gas"].to_numpy()
-    climatizacion = df['climatizacion'].to_numpy()
-    eficiencia = datos['Gas']['eficiencia']
+    ef = datos['Gas']['eficiencia']
     # Asegúrate que t_ext tiene la longitud horas; aquí lo preparo como vector:
 
     model = pyo.ConcreteModel()
@@ -54,20 +53,19 @@ def calculo_gas(df, inversion):
     model.p_max = pyo.Constraint(model.H, rule=p_maxima)
 
     def balance_rule(m, h):
-        return m.q_cg[h] * eficiencia == m.q_ct[h]
+        return m.q_cg[h] * ef == m.q_ct[h]
     model.Balance = pyo.Constraint(model.H, rule=balance_rule)
 
     def coste_operativo(m):
         return sum(m.q_cg[h] * m.precio[h] for h in m.H)
-    model.CosteOper = pyo.Expression(rule=coste_operativo)
-    model.CosteCaldera = pyo.Expression(expr=0.05968 * model.p_gas)
+    model.opex = pyo.Expression(rule=coste_operativo)
+    model.c_cg = pyo.Expression(expr=0.05968 * model.p_gas)
 
-    model.Inversion = pyo.Expression(
-        expr=model.CosteCaldera + inversion
+    model.capex = pyo.Expression(
+        expr=model.c_cg + c_i
     )
-
     model.OBJ = pyo.Objective(
-        expr=model.CosteOper + model.Inversion / datos['Gas']['Ciclo de vida'],
+        expr=model.opex + model.capex / datos['Gas']['Ciclo de vida'],
         sense=pyo.minimize
     )
     # ---------------------------
@@ -84,8 +82,8 @@ def calculo_gas(df, inversion):
                                'Q_caldera': (np.round(pyo.value(model.q_cg[h]), 2) for h in model.H)})
     df_results.to_csv("resultados_modelo.csv", index=False)
     resultado = {
-        "Costo anual": f"{np.round(pyo.value(model.CosteOper), 2)} €",
+        "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         "Potencia Caldera de gas": f"{np.round(pyo.value(model.p_gas), 2)} W",
-        "Inversion": f"{float(np.round(pyo.value(model.Inversion), 2))} €"
+        "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
     return resultado

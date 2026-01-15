@@ -11,7 +11,7 @@ import pyomo.environ as pyo
 from dotenv import load_dotenv
 
 
-def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, inversion):
+def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     """Funcion para la optimización económica de sistemas de climatización por aerotermia
 
     :param tipo: Módelo de aerotermia seleccionado
@@ -19,7 +19,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, inversion):
     :param irradiacion: Resultados de irradiacion incidente en la residencia
     :param placas:
     :param aguas: Numero de aguas del tejado de la residencia en estudio
-    :param inversion: Coste de la instalacion del nuevo sistema de climatización
+    :param c_i: Coste invariable de la instalacion del nuevo sistema de climatización
     """
     # ---------------------------
     # CARGA DE DATOS (usa tus rutas/objetos)
@@ -70,16 +70,17 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, inversion):
     # ---------------------------
     model.p_bdc = pyo.Var(bounds=(0, datos["Bomba de calor"]["Limite"]))
     model.e_red = pyo.Var(model.H, bounds=(0, datos["Bomba de calor"]["Limite"]))
+    model.vertido_ps = pyo.Var(model.H, domain=pyo.NonNegativeReals)
     if sum(n_ps[j] for j in model.J) > 0:
         model.e_ps = pyo.Param(
-            model.H, initialize={h: float(sum(irradiacion[h, j] * n_ps[j] for j in model.J) * 0.2225) for h in model.H}
+            model.H,
+            initialize={h: float(sum(irradiacion[h, j] * n_ps[j] * 0.2225 for j in model.J)) for h in model.H}
         )
         model.n_ps = pyo.Param(
             model.J, initialize={j: float(n_ps[j]) for j in model.J}
         )
     else:
         model.e_ps = pyo.Var(model.H, bounds=(0, datos["Bomba de calor"]["Limite"]))
-
         model.n_ps = pyo.Var(
             model.J,
             within=pyo.NonNegativeIntegers,
@@ -96,38 +97,38 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, inversion):
     # Limito la potencia máxima que puede dar la BdC aprovechando electricidad de placas y de red
     def p_maxima(m, h):
         if m.climatizacion[h] == 'Calefaccion':
-            return (m.e_ps[h] + m.e_red[h]) * cop <= m.p_bdc
+            return (m.e_ps[h] + m.e_red[h] - m.vertido_ps[h]) * cop <= m.p_bdc
         else:
-            return (m.e_ps[h] + m.e_red[h]) * err <= m.p_bdc
+            return (m.e_ps[h] + m.e_red[h] - m.vertido_ps[h]) * err <= m.p_bdc
     model.p_max = pyo.Constraint(model.H, rule=p_maxima)
 
     # Ecuación del balance térmico para aire acondicionado
     def balance_rule(m, h):
         if m.climatizacion[h] == 'Calefaccion':
-            return (m.e_red[h] + m.e_ps[h]) * cop == m.q_ct[h]
-        return (m.e_red[h] + m.e_ps[h]) * err * -1 == m.q_ct[h]
+            return (m.e_red[h] + m.e_ps[h] - m.vertido_ps[h]) * cop == m.q_ct[h]
+        return (m.e_red[h] + m.e_ps[h] - m.vertido_ps[h]) * err * -1 == m.q_ct[h]
     model.Balance = pyo.Constraint(model.H, rule=balance_rule)
-    
+
     # ---------------------------
     # Objetivo (solo operación)
     # ---------------------------
 
     def coste_operativo(m):
         return sum(m.e_red[h] * m.precio[h] for h in m.H)
-    model.CosteOper = pyo.Expression(rule=coste_operativo)
+    model.opex = pyo.Expression(rule=coste_operativo)
     model.n_bdc = pyo.Expression(expr=math.ceil(
         datos['Aire acondicionado']['habitaciones'] / datos['Aire acondicionado']['split']))
-    model.CosteBdC = pyo.Expression(expr=0.32115 * model.p_bdc)
+    model.c_bdc = pyo.Expression(expr=0.32115 * model.p_bdc)
     model.Coste_ud_interior = pyo.Expression(
         expr=datos['Aire acondicionado']['habitaciones'] * datos['Aire acondicionado']['precio Ud. Interior'])
-    model.CostePlacas = pyo.Expression(expr=311 * sum(model.n_ps[j] for j in model.J))
+    model.c_ps = pyo.Expression(expr=311 * sum(model.n_ps[j] for j in model.J))
 
-    model.Inversion = pyo.Expression(
-        expr=model.CosteBdC + model.Coste_ud_interior + model.CostePlacas + inversion
+    model.capex = pyo.Expression(
+        expr=model.c_bdc + model.Coste_ud_interior + model.c_ps + c_i
     )
 
     model.OBJ = pyo.Objective(
-        expr=model.CosteOper + model.Inversion / datos['Bomba de calor']['Ciclo de vida'],
+        expr=model.opex + model.capex / datos['Bomba de calor']['Ciclo de vida'],
         sense=pyo.minimize
     )
     # ---------------------------
@@ -149,19 +150,19 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, inversion):
                                ), 2) for h in model.H)})
     df_results.to_csv("resultados_modelo.csv", index=False)
     resultado = {
-        "Costo anual": f"{np.round(pyo.value(model.OBJ), 2)} €",
+        "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         "Potencia Bomba de calor": f"{np.round(pyo.value(model.p_bdc), 2)} W",
         "placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
-        "Inversion": f"{float(np.round(pyo.value(model.Inversion), 2))} €"
+        "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
     df_results.set_index(pd.date_range("2023-01-01", periods=horas-1, freq="h"), inplace=True)
     df_results['climatizacion'] = climatizacion[1:]
     df_results["ef"] = df_results["climatizacion"].apply(lambda x: err if x == "Refrigeracion" else cop)
     df_results['Q_ac,el'] = df_results['e_red'] * df_results['ef']
     df_results['Q_ac,ps'] = df_results['e_ps'] * df_results['ef']
-    df_results['Q_ac'] = df_results['Q_bdc,el'] + df_results['Q_bdc,ps']
-    sns.scatterplot(data=df_results, x=df_results.index, y='Q_bdc', s=9)
-    plt.ylabel()
+    df_results['Q_ac'] = df_results['Q_ac,el'] + df_results['Q_ac,ps']
+    sns.scatterplot(data=df_results, x=df_results.index, y='Q_ac', s=9)
+    plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
     plt.savefig('Todos los datos.png')
     plt.close()

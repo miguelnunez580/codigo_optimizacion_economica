@@ -24,4 +24,3 @@ def calculo_irradiacion(latitud, longitud, azimut, aguas):
         irradiacion.insert(i, f'cara_{i}', df_resultado['Gb(i)'] + df_resultado['Gd(i)'] + df_resultado['Gr(i)'])
     # resultado.to_csv(r'C:\Users\mnbay\Desktop\PVGIS.csv', index=False)
     return irradiacion
-

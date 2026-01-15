@@ -11,7 +11,7 @@ import pyomo.environ as pyo
 from dotenv import load_dotenv
 
 
-def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
+def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
     """Funcion para la optimización económica de sistemas de climatización por aerotermia
 
     :param tipo: Módelo de aerotermia seleccionado
@@ -19,7 +19,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
     :param irradiacion: Resultados de irradiacion incidente en la residencia
     :param placas:
     :param aguas: Numero de aguas del tejado de la residencia en estudio
-    :param inversion: Coste de la instalacion del nuevo sistema de climatización
+    :param c_i: Coste invariable de la instalacion del nuevo sistema de climatización
     """
     # ---------------------------
     # CARGA DE DATOS (usa tus rutas/objetos)
@@ -132,18 +132,18 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
 
     def coste_operativo(m):
         return sum(m.e_red[h] * m.precio[h] for h in m.H)
-    model.CosteOper = pyo.Expression(rule=coste_operativo)
+    model.opex = pyo.Expression(rule=coste_operativo)
 
-    model.CosteAero = pyo.Expression(expr=0.35849 * model.p_bdc)
-    model.CosteDep = pyo.Expression(expr=4.08 * model.v_dep)
-    model.CostePlacas = pyo.Expression(expr=311 * sum(model.n_ps[j] for j in model.J))
+    model.c_bdc = pyo.Expression(expr=0.35849 * model.p_bdc)
+    model.c_dep = pyo.Expression(expr=4.08 * model.v_dep)
+    model.c_ps = pyo.Expression(expr=311 * sum(model.n_ps[j] for j in model.J))
 
-    model.Inversion = pyo.Expression(
-        expr=model.CosteAero + model.CosteDep + model.CostePlacas + inversion
+    model.capex = pyo.Expression(
+        expr=model.c_bdc + model.c_dep + model.c_ps + c_i
     )
 
     model.OBJ = pyo.Objective(
-        expr=model.CosteOper + model.Inversion / datos['Bomba de calor']['Ciclo de vida'],
+        expr=model.opex + model.capex / datos['Bomba de calor']['Ciclo de vida'],
         sense=pyo.minimize
     )
     # ---------------------------
@@ -161,18 +161,18 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
                                't_int': (np.round(pyo.value(model.t_int[h]), 2) for h in model.H),
                                'e_red': (np.round(pyo.value(model.e_red[h]), 2) for h in model.H),
                                'e_ps': (np.round(pyo.value(model.e_ps[h]), 2) for h in model.H),
-                               'Perdidas térmicas': (np.round(pyo.value(model.v_dep)*ef*(
+                               'Perdidas_termicas': (np.round(pyo.value(model.v_dep)*ef*(
                                    pyo.value(model.t_int[h]-t_ext[h])), 2) for h in model.H),
                                'Generacion_solar': (np.round(sum(0.2255 * irradiacion[h] * np.array(
                                    list({j: pyo.value(model.n_ps[j]) for j in model.J}.values()))
                                ), 2) for h in model.H)})
     df_results.to_csv("resultados_modelo.csv", index=False)
     resultado = {
-        "Costo anual": f"{np.round(pyo.value(model.CosteOper), 2)} €",
+        "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         f"Potencia {tipo}": f"{np.round(pyo.value(model.p_bdc), 2)} W",
         "Volumen deposito de inercia": f"{float(np.round(pyo.value(model.v_dep), 2))} L",
         "placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
-        "Inversion": f"{float(np.round(pyo.value(model.Inversion), 2))}  €"
+        "Inversion": f"{float(np.round(pyo.value(model.capex), 2))}  €"
     }
     df_results.set_index(pd.date_range("2023-01-01", periods=horas-1, freq="h"), inplace=True)
     df_results['climatizacion'] = climatizacion[1:]
@@ -183,7 +183,6 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
     # df_results['Q_dep'] = pyo.value(model.v_dep) * 1.36888 * (df_results["t_int"] - df_results["t_int"].shift(1))
     df_results['Q_dep'] = pyo.value(model.v_dep) * 1.36888 * (df_results["t_int"])
     sns.scatterplot(data=df_results, x=df_results.index, y='Q_bdc', s=9)
-    plt.title('Funcionamiento de la bomba de calor a lo largo de un año')
     plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
     plt.savefig('Todos los datos.png')
@@ -194,8 +193,6 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
     data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_dep', 'Q_bdc,el', 'Q_bdc,ps'])
     g = sns.FacetGrid(data, col="variable", sharey=False)
     g.map(sns.barplot, data.columns[0], "value")
-    g.figure.suptitle("Energía media aportada por los equipos en cada hora del día", fontsize=16)
-    g.figure.subplots_adjust(top=0.9)
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Hora del día", "Energia [W·h]")
     for ax in g.axes.flatten():
@@ -210,8 +207,6 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, inversion):
     data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_bdc'])
     g = sns.FacetGrid(data, col="variable", sharey=False)
     g.map(sns.barplot, data.columns[0], "value")
-    g.figure.suptitle("Energía media aportada por los \nequipos en cada mes del año")
-    g.figure.subplots_adjust(top=0.9)
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Mes del año", "Energia [W·h]")
     g.figure.tight_layout(pad=1)

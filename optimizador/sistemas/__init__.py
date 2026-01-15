@@ -1,4 +1,5 @@
 """Modulo que seleciona la opción de cálculo"""
+import numpy as np
 import pandas as pd
 
 from optimizador.sistemas.estudio_aerotermia import calculo_aerotermia
@@ -24,7 +25,7 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
         df_refrigeracion = df.loc[df['climatizacion'] == 'Refrigeracion']
         resultado_calefaccion = calculo_gas(df_calefaccion, df_inversion.loc[actual, nuevo])
         resultado_refrigeracion = calculo_aire_acondicionado(
-            df_refrigeracion, irradiacion, placas, resultado_calefaccion['placas'],
+            df_refrigeracion, irradiacion, placas, [0]*aguas,
             aguas, df_inversion.loc[actual, 'Aire acondicionado'])
         resultado = {
             "Costo anual": f"{(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
@@ -51,8 +52,8 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
             "Potencia Aerotermia de alta": resultado_calefaccion["Potencia Aerotermia de alta"],
             "Potencia Aire acondicionado": resultado_refrigeracion["Potencia Bomba de calor"],
             "Placas solares": resultado_calefaccion["placas"],
-            "Inversion": f"{(float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
-                             float(resultado_refrigeracion["Inversion"].replace("€", "").strip()))} €"
+            "Inversion": f"{np.round((float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
+                             float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
         }
     elif nuevo == "Aerotermia de alta" and not refri:
         resultado = calculo_aerotermia(nuevo, df, irradiacion, placas, aguas, df_inversion.loc[actual, nuevo])
