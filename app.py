@@ -105,11 +105,11 @@ def optimizador():
                                         irradiacion, placas, actual, nuevo, aguas)
             mostrar(datos)
         except Exception as e:
-            mostrar("Error al ejecutar el optimizador. Más información en la terminal")
+            mostrar({"Error al ejecutar el optimizador.": "Más información en la terminal"})
             raise Exception(f"Error al ejecutar el optimizador: {e}")
 
     else:
-        mostrar("Primero debes cargar el archivo de cargas.")
+        mostrar({"Error": "Primero debes cargar el archivo de cargas."})
 
 
 # Ventana principal
