@@ -83,7 +83,7 @@ def calculo_gas(df, c_i):
     df_results.to_csv("resultados_modelo.csv", index=False)
     resultado = {
         "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
-        "Potencia Caldera de gas": f"{np.round(pyo.value(model.p_gas), 2)} W",
+        "Potencia Caldera de gas": f"{np.round(pyo.value(model.p_gas)/1000, 2)} kW",
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
     return resultado

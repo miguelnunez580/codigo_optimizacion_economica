@@ -19,7 +19,8 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
     :param refri: Booleano con el resultado de la casilla refrigeracion del script principal
     """
     df_inversion = pd.read_csv('Datos/inversion.csv', sep=';', index_col=0)
-    inversion = df_inversion.loc[actual, nuevo]
+    df_ayudas = pd.read_csv('Datos/ayudas.csv', sep=';')
+    inversion = max(df_inversion.loc[actual, nuevo] - df_ayudas[nuevo].iloc[0], 0)
     if refri and nuevo == "Gas":
         df_calefaccion = df.loc[df['climatizacion'] == 'Calefaccion']
         df_refrigeracion = df.loc[df['climatizacion'] == 'Refrigeracion']
@@ -28,13 +29,13 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
             df_refrigeracion, irradiacion, placas, [0]*aguas,
             aguas, df_inversion.loc[actual, 'Aire acondicionado'])
         resultado = {
-            "Costo anual": f"{(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
-                               float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()))} €",
+            "Costo anual": f"{np.round(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
+                               float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()), 2)} €",
             "Potencia Caldera de gas": resultado_calefaccion["Potencia Caldera de gas"],
             "Potencia Aire acondicionado": resultado_refrigeracion["Potencia Bomba de calor"],
             "Placas solares": resultado_refrigeracion["placas"],
-            "Inversion": f"{(float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
-                             float(resultado_refrigeracion["Inversion"].replace("€", "").strip()))} €"
+            "Inversion": f"{np.round((float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
+                             float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
         }
     elif nuevo == "Gas" and not refri:
         resultado = calculo_gas(df, inversion)
@@ -47,13 +48,13 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
         resultado_refrigeracion = calculo_aire_acondicionado(
             df_refrigeracion, irradiacion, placas, ps, aguas, df_inversion.loc[actual, 'Aire acondicionado'])
         resultado = {
-            "Costo anual": f"{(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
-                               float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()))} €",
+            "Costo anual": f"{np.round(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
+                                       float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()), 2)} €",
             "Potencia Aerotermia de alta": resultado_calefaccion["Potencia Aerotermia de alta"],
             "Potencia Aire acondicionado": resultado_refrigeracion["Potencia Bomba de calor"],
             "Placas solares": resultado_calefaccion["placas"],
             "Inversion": f"{np.round((float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
-                             float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
+                                      float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
         }
     elif nuevo == "Aerotermia de alta" and not refri:
         resultado = calculo_aerotermia(nuevo, df, irradiacion, placas, aguas, df_inversion.loc[actual, nuevo])

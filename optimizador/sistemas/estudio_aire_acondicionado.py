@@ -151,7 +151,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     df_results.to_csv("resultados_modelo.csv", index=False)
     resultado = {
         "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
-        "Potencia Bomba de calor": f"{np.round(pyo.value(model.p_bdc), 2)} W",
+        "Potencia Bomba de calor": f"{np.round(pyo.value(model.p_bdc)/1000, 2)} kW",
         "placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
