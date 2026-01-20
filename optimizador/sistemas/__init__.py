@@ -44,15 +44,16 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
         df_refrigeracion = df.loc[df['climatizacion'] == 'Refrigeracion']
         resultado_calefaccion = calculo_aerotermia(
             nuevo, df_calefaccion, irradiacion, placas, aguas, df_inversion.loc[actual, nuevo])
-        ps = resultado_calefaccion["placas"]
+        ps = resultado_calefaccion["Placas"]
         resultado_refrigeracion = calculo_aire_acondicionado(
             df_refrigeracion, irradiacion, placas, ps, aguas, df_inversion.loc[actual, 'Aire acondicionado'])
         resultado = {
             "Costo anual": f"{np.round(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
                                        float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()), 2)} €",
             "Potencia Aerotermia de alta": resultado_calefaccion["Potencia Aerotermia de alta"],
+            "Volumen deposito de inercia": resultado_calefaccion["Volumen deposito de inercia"],
             "Potencia Aire acondicionado": resultado_refrigeracion["Potencia Bomba de calor"],
-            "Placas solares": resultado_calefaccion["placas"],
+            "Placas solares": resultado_calefaccion["Placas"],
             "Inversion": f"{np.round((float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
                                       float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
         }

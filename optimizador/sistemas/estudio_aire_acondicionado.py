@@ -42,7 +42,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     # ---------------------------
     # Sets
     # ---------------------------
-    model.H = pyo.RangeSet(1, horas - 1)
+    model.H = pyo.RangeSet(0, horas - 1)
     model.J = pyo.RangeSet(0, aguas - 1)
     # ---------------------------
     # Parámetros
@@ -69,7 +69,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     # Variables
     # ---------------------------
     model.p_bdc = pyo.Var(bounds=(0, datos["Bomba de calor"]["Limite"]))
-    model.e_red = pyo.Var(model.H, bounds=(0, datos["Bomba de calor"]["Limite"]))
+    model.e_red = pyo.Var(model.H, domain=pyo.NonNegativeReals)
     model.vertido_ps = pyo.Var(model.H, domain=pyo.NonNegativeReals)
     if sum(n_ps[j] for j in model.J) > 0:
         model.e_ps = pyo.Param(
@@ -80,7 +80,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
             model.J, initialize={j: float(n_ps[j]) for j in model.J}
         )
     else:
-        model.e_ps = pyo.Var(model.H, bounds=(0, datos["Bomba de calor"]["Limite"]))
+        model.e_ps = pyo.Var(model.H, domain=pyo.NonNegativeReals)
         model.n_ps = pyo.Var(
             model.J,
             within=pyo.NonNegativeIntegers,
@@ -155,46 +155,38 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
         "placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
-    df_results.set_index(pd.date_range("2023-01-01", periods=horas-1, freq="h"), inplace=True)
-    df_results['climatizacion'] = climatizacion[1:]
+    df_results.set_index(pd.date_range("2023-01-01", periods=horas, freq="h"), inplace=True)
+    df_results['climatizacion'] = climatizacion
     df_results["ef"] = df_results["climatizacion"].apply(lambda x: err if x == "Refrigeracion" else cop)
     df_results['Q_ac,el'] = df_results['e_red'] * df_results['ef']
     df_results['Q_ac,ps'] = df_results['e_ps'] * df_results['ef']
     df_results['Q_ac'] = df_results['Q_ac,el'] + df_results['Q_ac,ps']
-    sns.scatterplot(data=df_results, x=df_results.index, y='Q_ac', s=9)
+    sns.scatterplot(data=df_results, x=df_results.index, y='Q_ac', s=9, color='red')
     plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
-    plt.savefig('Todos los datos.png')
-    plt.close()
-
-    data = df_results.groupby(by=df_results.index.hour)[['Q_ac']].mean()
-    data.reset_index(inplace=True)
-    data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_ac'])
-    g = sns.FacetGrid(data, col="variable", sharey=False)
-    g.map(sns.barplot, data.columns[0], "value")
-    g.set_titles(col_template="{col_name}")
-    g.set_axis_labels("Hora del día", "Energia [W·h]")
-    plt.savefig('Discriminación horaria.png')
+    plt.savefig('Todos los datos Aire acondicionado.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.hour)[['Q_ac,el', 'Q_ac,ps']].mean()
     data.reset_index(inplace=True)
     data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_ac,el', 'Q_ac,ps'])
     g = sns.FacetGrid(data, col="variable", sharey=False)
-    g.map(sns.barplot, data.columns[0], "value")
+    g.map(sns.barplot, data.columns[0], "value", color='red')
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Hora del día", "Energia [W·h]")
-    plt.xticks(fontsize=8)
-    plt.savefig('Discriminación horaria.png')
+    for ax in g.axes.flatten():
+        ax.tick_params(axis='x', labelsize=7)
+        plt.setp(ax.get_xticklabels(), rotation=90)
+    plt.savefig('Discriminación horaria Aire acondicionado.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.month)[['Q_ac']].mean()
     data.reset_index(inplace=True)
     data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_ac'])
     g = sns.FacetGrid(data, col="variable", sharey=False)
-    g.map(sns.barplot, data.columns[0], "value")
+    g.map(sns.barplot, data.columns[0], "value", color='red')
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Mes del año", "Energia [W·h]")
-    plt.savefig('Discriminación mensual.png')
+    plt.savefig('Discriminación mensual Aire acondicionado.png')
     plt.close()
     return resultado

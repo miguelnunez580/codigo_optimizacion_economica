@@ -5,6 +5,8 @@ import yaml
 import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from dotenv import load_dotenv
 
@@ -45,7 +47,7 @@ def calculo_gas(df, c_i):
     # ---------------------------
     # Variables
     # ---------------------------
-    model.q_cg = pyo.Var(model.H, bounds=(0, datos["Bomba de calor"]["Limite"]))
+    model.q_cg = pyo.Var(model.H, domain=pyo.NonNegativeReals)
     model.p_gas = pyo.Var(bounds=(0, np.inf))
 
     def p_maxima(m, h):
@@ -79,11 +81,40 @@ def calculo_gas(df, c_i):
     opt.solve(model, tee=True)
     df_results = pd.DataFrame({'Horas': model.H,
                                'cargas': (np.round(pyo.value(model.q_ct[h]), 2) for h in model.H),
-                               'Q_caldera': (np.round(pyo.value(model.q_cg[h]), 2) for h in model.H)})
+                               'Q_cg': (np.round(pyo.value(model.q_cg[h]), 2) for h in model.H)})
     df_results.to_csv("resultados_modelo.csv", index=False)
     resultado = {
         "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         "Potencia Caldera de gas": f"{np.round(pyo.value(model.p_gas)/1000, 2)} kW",
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
+    df_results.set_index(pd.date_range("2023-01-01", periods=horas, freq="h"), inplace=True)
+    sns.scatterplot(data=df_results, x=df_results.index, y='Q_cg', s=9, color='grey')
+    plt.ylabel('Energia [W·h]')
+    plt.xlabel("Año")
+    plt.savefig('Todos los datos Gas.png')
+    plt.close()
+
+    data = df_results.groupby(by=df_results.index.hour)[['Q_cg']].mean()
+    data.reset_index(inplace=True)
+    data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_cg'])
+    g = sns.FacetGrid(data, col="variable", sharey=False)
+    g.map(sns.barplot, data.columns[0], "value", color='grey')
+    g.set_titles(col_template="{col_name}")
+    g.set_axis_labels("Hora del día", "Energia [W·h]")
+    for ax in g.axes.flatten():
+        ax.tick_params(axis='x', labelsize=7)
+        plt.setp(ax.get_xticklabels(), rotation=90)
+    plt.savefig('Discriminación horaria gas.png')
+    plt.close()
+
+    data = df_results.groupby(by=df_results.index.month)[['Q_cg']].mean()
+    data.reset_index(inplace=True)
+    data = pd.melt(data, id_vars=data.columns[0], value_vars=['Q_cg'])
+    g = sns.FacetGrid(data, col="variable", sharey=False)
+    g.map(sns.barplot, data.columns[0], "value", color='grey')
+    g.set_titles(col_template="{col_name}")
+    g.set_axis_labels("Mes del año", "Energia [W·h]")
+    plt.savefig('Discriminación mensual Gas.png')
+    plt.close()
     return resultado

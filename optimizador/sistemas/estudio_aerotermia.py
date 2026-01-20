@@ -171,7 +171,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
         "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         f"Potencia {tipo}": f"{np.round(pyo.value(model.p_bdc)/1000, 2)} kW",
         "Volumen deposito de inercia": f"{float(np.round(pyo.value(model.v_dep), 2))} L",
-        "placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
+        "Placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))}  €"
     }
     df_results.set_index(pd.date_range("2023-01-01", periods=horas-1, freq="h"), inplace=True)
@@ -180,12 +180,11 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
     df_results['Q_bdc,el'] = df_results['e_red'] * df_results['ef']
     df_results['Q_bdc,ps'] = df_results['e_ps'] * df_results['ef']
     df_results['Q_bdc'] = df_results['Q_bdc,el'] + df_results['Q_bdc,ps']
-    # df_results['Q_dep'] = pyo.value(model.v_dep) * 1.36888 * (df_results["t_int"] - df_results["t_int"].shift(1))
     df_results['Q_dep'] = pyo.value(model.v_dep) * 1.36888 * (df_results["t_int"])
     sns.scatterplot(data=df_results, x=df_results.index, y='Q_bdc', s=9)
     plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
-    plt.savefig('Todos los datos.png')
+    plt.savefig(f'Todos los datos {tipo}.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.hour)[['Q_dep', 'Q_bdc,el', 'Q_bdc,ps']].mean()
@@ -199,7 +198,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
         ax.tick_params(axis='x', labelsize=7)
         plt.setp(ax.get_xticklabels(), rotation=90)
     g.figure.tight_layout(pad=1)
-    plt.savefig('Discriminación horaria.png')
+    plt.savefig(f'Discriminación horaria {tipo}.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.month)[['Q_bdc']].mean()
@@ -210,6 +209,6 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Mes del año", "Energia [W·h]")
     g.figure.tight_layout(pad=1)
-    plt.savefig('Discriminación mensual.png')
+    plt.savefig(f'Discriminación mensual {tipo}.png')
     plt.close()
     return resultado
