@@ -174,7 +174,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
         "Placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))}  €"
     }
-    df_results.set_index(pd.date_range("2023-01-01", periods=horas-1, freq="h"), inplace=True)
+    df_results.set_index(df.index, inplace=True)
     df_results['climatizacion'] = climatizacion[1:]
     df_results["ef"] = df_results["climatizacion"].apply(lambda x: err if x == "Refrigeracion" else cop)
     df_results['Q_bdc,el'] = df_results['e_red'] * df_results['ef']

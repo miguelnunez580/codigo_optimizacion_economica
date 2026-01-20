@@ -88,7 +88,7 @@ def calculo_gas(df, c_i):
         "Potencia Caldera de gas": f"{np.round(pyo.value(model.p_gas)/1000, 2)} kW",
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"
     }
-    df_results.set_index(pd.date_range("2023-01-01", periods=horas, freq="h"), inplace=True)
+    df_results.set_index(df.index, inplace=True)
     sns.scatterplot(data=df_results, x=df_results.index, y='Q_cg', s=9, color='grey')
     plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
