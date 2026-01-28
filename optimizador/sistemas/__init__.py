@@ -62,7 +62,7 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
     elif nuevo == "Aerotermia de baja":
         resultado = calculo_aerotermia(nuevo, df, irradiacion, placas, aguas, df_inversion.loc[actual, nuevo])
     elif nuevo == "Aire acondicionado":
-        resultado = calculo_aire_acondicionado(df, irradiacion, placas, None, aguas, df_inversion.loc[actual, nuevo])
+        resultado = calculo_aire_acondicionado(df, irradiacion, placas, [0]*aguas, aguas, df_inversion.loc[actual, nuevo])
     else:
         resultado = 'No se seleciono ninguna opción correcta'
     return resultado

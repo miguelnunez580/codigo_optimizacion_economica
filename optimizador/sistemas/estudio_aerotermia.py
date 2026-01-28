@@ -96,7 +96,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
     # Restricciones
     # ---------------------------
     def solar_rule(m, h):
-        return m.e_ps[h] <= sum(m.g[h, j] * m.n_ps[j] for j in m.J) * 0.2225
+        return m.e_ps[h] <= sum(m.g[h, j] * m.n_ps[j] for j in m.J) * datos['Placas solares']['eficiencia']
     model.SolarLimit = pyo.Constraint(model.H, rule=solar_rule)
 
     # Limito la potencia máxima que puede dar la BdC aprovechando electricidad de placas y de red
@@ -166,7 +166,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
                                'Generacion_solar': (np.round(sum(0.2255 * irradiacion[h] * np.array(
                                    list({j: pyo.value(model.n_ps[j]) for j in model.J}.values()))
                                ), 2) for h in model.H)})
-    df_results.to_csv("resultados_modelo.csv", index=False)
+    df_results.to_csv(f"Resultados/resultados_modelo_{tipo}.csv", index=False)
     resultado = {
         "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         f"Potencia {tipo}": f"{np.round(pyo.value(model.p_bdc)/1000, 2)} kW",
@@ -174,7 +174,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
         "Placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))}  €"
     }
-    df_results.set_index(df.index, inplace=True)
+    df_results.set_index(df.index[1:], inplace=True)
     df_results['climatizacion'] = climatizacion[1:]
     df_results["ef"] = df_results["climatizacion"].apply(lambda x: err if x == "Refrigeracion" else cop)
     df_results['Q_bdc,el'] = df_results['e_red'] * df_results['ef']
@@ -184,7 +184,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
     sns.scatterplot(data=df_results, x=df_results.index, y='Q_bdc', s=9)
     plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
-    plt.savefig(f'Todos los datos {tipo}.png')
+    plt.savefig(f'Resultados/Todos los datos {tipo}.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.hour)[['Q_dep', 'Q_bdc,el', 'Q_bdc,ps']].mean()
@@ -198,7 +198,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
         ax.tick_params(axis='x', labelsize=7)
         plt.setp(ax.get_xticklabels(), rotation=90)
     g.figure.tight_layout(pad=1)
-    plt.savefig(f'Discriminación horaria {tipo}.png')
+    plt.savefig(f'Resultados/Discriminación horaria {tipo}.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.month)[['Q_bdc']].mean()
@@ -209,6 +209,6 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Mes del año", "Energia [W·h]")
     g.figure.tight_layout(pad=1)
-    plt.savefig(f'Discriminación mensual {tipo}.png')
+    plt.savefig(f'Resultados/Discriminación mensual {tipo}.png')
     plt.close()
     return resultado

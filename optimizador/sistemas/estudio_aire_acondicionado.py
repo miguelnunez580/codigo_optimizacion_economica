@@ -74,7 +74,8 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     if sum(n_ps[j] for j in model.J) > 0:
         model.e_ps = pyo.Param(
             model.H,
-            initialize={h: float(sum(irradiacion[h, j] * n_ps[j] * 0.2225 for j in model.J)) for h in model.H}
+            initialize={h: float(sum(irradiacion[h, j] * n_ps[j] * datos['Placas solares']['eficiencia']
+                                     for j in model.J)) for h in model.H}
         )
         model.n_ps = pyo.Param(
             model.J, initialize={j: float(n_ps[j]) for j in model.J}
@@ -148,7 +149,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
                                'Generacion_solar': (np.round(sum(0.2255 * irradiacion[h] * np.array(
                                    list({j: pyo.value(model.n_ps[j]) for j in model.J}.values()))
                                ), 2) for h in model.H)})
-    df_results.to_csv("resultados_modelo.csv", index=False)
+    df_results.to_csv("Resultados/resultados_modelo_Aire acondicionado.csv", index=False)
     resultado = {
         "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         "Potencia Bomba de calor": f"{np.round(pyo.value(model.p_bdc)/1000, 2)} kW",
@@ -164,7 +165,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     sns.scatterplot(data=df_results, x=df_results.index, y='Q_ac', s=9, color='red')
     plt.ylabel('Energia [W·h]')
     plt.xlabel("Año")
-    plt.savefig('Todos los datos Aire acondicionado.png')
+    plt.savefig('Resultados/Todos los datos Aire acondicionado.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.hour)[['Q_ac,el', 'Q_ac,ps']].mean()
@@ -177,7 +178,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     for ax in g.axes.flatten():
         ax.tick_params(axis='x', labelsize=7)
         plt.setp(ax.get_xticklabels(), rotation=90)
-    plt.savefig('Discriminación horaria Aire acondicionado.png')
+    plt.savefig('Resultados/Discriminación horaria Aire acondicionado.png')
     plt.close()
 
     data = df_results.groupby(by=df_results.index.month)[['Q_ac']].mean()
@@ -187,6 +188,6 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     g.map(sns.barplot, data.columns[0], "value", color='red')
     g.set_titles(col_template="{col_name}")
     g.set_axis_labels("Mes del año", "Energia [W·h]")
-    plt.savefig('Discriminación mensual Aire acondicionado.png')
+    plt.savefig('Resultados/Discriminación mensual Aire acondicionado.png')
     plt.close()
     return resultado

@@ -13,11 +13,17 @@ Deposito:
   Limite: 80.0  # Almacenaje máximo admisible en el depósito de inercia. Unidades: Litros
   eficiencia: 0.0058  # Unidades: W/(K·L)
 Bomba de calor:
-  Limite: 16000.0  # Potencia máxima admisible de la bomba de calor. Unidades: W
+  Limite: 160000.0  # Potencia máxima admisible de la bomba de calor. Unidades: W
   Ciclo de vida: 20 # Unidades: años
 Aire acondicionado:
+  Frio nominal: 8400.0  # Potencia nominal de refrigeración. Unidades: W
+  Calor nominal: 10600.0  # Potencia nominal de calefacción. Unidades: W
   cop: 4.5 # Unidades: -
   err: 3.8 # Unidades: -
   split: 3 # Unidades: Unidad
   habitaciones: 8 # Unidades: Unidad
   precio Ud. Interior: 720 # Unidades: €
+Placas solares:
+  eficiencia: 0.2225  # Unidades: -
+  potencia pico: 0.5 # Unidades: kWp
+  Tamaño: 2.16 # Unidades: m²

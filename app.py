@@ -87,15 +87,15 @@ def optimizador():
         lat = entrada_latitud.get("1.0", tk.END).strip()
         lon = entrada_longitud.get("1.0", tk.END).strip()
         azimut = entrada_azimut.get("1.0", tk.END).strip()
-        # area = entrada_area.get("1.0", tk.END).strip()
+        placas = [int(x) for x in entrada_area.get("1.0", tk.END).strip().split(',')]
         aguas = entrada_aguas.get("1.0", tk.END).strip()
         irradiacion = calculo_irradiacion(lat, lon, int(azimut), int(aguas))
     else:
         irradiacion = pd.DataFrame({'cara_0': [0]*8760})
         aguas = 1
+        placas = [0]
     if cargas is not None:
         # Guardar datos de entrada
-        placas = [62, 98, 62, 98]
         aguas = int(aguas)
         actual = combo.get()
         nuevo = combo_nuevo.get()
