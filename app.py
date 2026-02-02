@@ -133,7 +133,7 @@ combo.current(0)  # Seleccionar la primera opción por defecto
 combo.grid(row=0, column=1, padx=5, sticky="w")
 combo_nuevo = ttk.Combobox(frame_superior, values=[
                            # readonly evita escritura libre
-                           "Gas", "Aerotermia de alta", "Aerotermia de baja", "Aire acondicionado", "Todas"],
+                           "Gas", "Aerotermia de alta", "Aerotermia de baja", "Todas"],
                            state="readonly")
 combo_nuevo.current(0)  # Seleccionar la primera opción por defecto
 combo_nuevo.grid(row=1, column=1, padx=5, sticky="w")
