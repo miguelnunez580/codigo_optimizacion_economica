@@ -29,13 +29,14 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
             df_refrigeracion, irradiacion, placas, [0]*aguas,
             aguas, df_inversion.loc[actual, 'Aire acondicionado'])
         resultado = {
-            "Costo anual": f"{np.round(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
-                               float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()), 2)} €",
+            "Costo operativo anual": f"{
+                np.round(float(resultado_calefaccion["Costo operativo anual"].replace("€", "").strip()) +
+                         float(resultado_refrigeracion["Costo operativo anual"].replace("€", "").strip()), 2)} €",
             "Potencia Caldera de gas": resultado_calefaccion["Potencia Caldera de gas"],
             "Potencia Aire acondicionado": resultado_refrigeracion["Potencia Bomba de calor"],
-            "Placas solares": resultado_refrigeracion["placas"],
+            "Placas": resultado_refrigeracion["placas"],
             "Inversion": f"{np.round((float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
-                             float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
+                                      float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
         }
     elif nuevo == "Gas" and not refri:
         resultado = calculo_gas(df, inversion)
@@ -48,12 +49,13 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
         resultado_refrigeracion = calculo_aire_acondicionado(
             df_refrigeracion, irradiacion, placas, ps, aguas, df_inversion.loc[actual, 'Aire acondicionado'])
         resultado = {
-            "Costo anual": f"{np.round(float(resultado_calefaccion["Costo anual"].replace("€", "").strip()) +
-                                       float(resultado_refrigeracion["Costo anual"].replace("€", "").strip()), 2)} €",
+            "Costo operativo anual": f"{
+                np.round(float(resultado_calefaccion["Costo operativo anual"].replace("€", "").strip()) +
+                         float(resultado_refrigeracion["Costo operativo anual"].replace("€", "").strip()), 2)} €",
             "Potencia Aerotermia de alta": resultado_calefaccion["Potencia Aerotermia de alta"],
             "Volumen deposito de inercia": resultado_calefaccion["Volumen deposito de inercia"],
             "Potencia Aire acondicionado": resultado_refrigeracion["Potencia Bomba de calor"],
-            "Placas solares": resultado_calefaccion["Placas"],
+            "Placas": resultado_calefaccion["Placas"],
             "Inversion": f"{np.round((float(resultado_calefaccion["Inversion"].replace("€", "").strip()) +
                                       float(resultado_refrigeracion["Inversion"].replace("€", "").strip())), 2)} €"
         }
@@ -62,7 +64,8 @@ def seleccion_sistema(nuevo, df, irradiacion, placas, aguas, actual, refri):
     elif nuevo == "Aerotermia de baja":
         resultado = calculo_aerotermia(nuevo, df, irradiacion, placas, aguas, df_inversion.loc[actual, nuevo])
     elif nuevo == "Aire acondicionado":
-        resultado = calculo_aire_acondicionado(df, irradiacion, placas, [0]*aguas, aguas, df_inversion.loc[actual, nuevo])
+        resultado = calculo_aire_acondicionado(
+            df, irradiacion, placas, [0]*aguas, aguas, df_inversion.loc[actual, nuevo])
     else:
         resultado = 'No se seleciono ninguna opción correcta'
     return resultado

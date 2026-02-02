@@ -119,7 +119,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
     model.opex = pyo.Expression(rule=coste_operativo)
     model.n_bdc = pyo.Expression(expr=math.ceil(
         datos['Aire acondicionado']['habitaciones'] / datos['Aire acondicionado']['split']))
-    model.c_bdc = pyo.Expression(expr=0.32115 * model.p_bdc)
+    model.c_bdc = pyo.Expression(expr=0.24778 * model.p_bdc)
     model.Coste_ud_interior = pyo.Expression(
         expr=datos['Aire acondicionado']['habitaciones'] * datos['Aire acondicionado']['precio Ud. Interior'])
     model.c_ps = pyo.Expression(expr=311 * sum(model.n_ps[j] for j in model.J))
@@ -151,7 +151,7 @@ def calculo_aire_acondicionado(df, irradiacion, area, n_ps, aguas, c_i):
                                ), 2) for h in model.H)})
     df_results.to_csv("Resultados/resultados_modelo_Aire acondicionado.csv", index=False)
     resultado = {
-        "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
+        "Costo operativo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         "Potencia Bomba de calor": f"{np.round(pyo.value(model.p_bdc)/1000, 2)} kW",
         "placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
         "Inversion": f"{float(np.round(pyo.value(model.capex), 2))} €"

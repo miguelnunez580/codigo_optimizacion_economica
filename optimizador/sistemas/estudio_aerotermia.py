@@ -168,7 +168,7 @@ def calculo_aerotermia(tipo, df, irradiacion, placas, aguas, c_i):
                                ), 2) for h in model.H)})
     df_results.to_csv(f"Resultados/resultados_modelo_{tipo}.csv", index=False)
     resultado = {
-        "Costo anual": f"{np.round(pyo.value(model.opex), 2)} €",
+        "Costo operativo anual": f"{np.round(pyo.value(model.opex), 2)} €",
         f"Potencia {tipo}": f"{np.round(pyo.value(model.p_bdc)/1000, 2)} kW",
         "Volumen deposito de inercia": f"{float(np.round(pyo.value(model.v_dep), 2))} L",
         "Placas": np.array(list({j: pyo.value(model.n_ps[j]) for j in model.J}.values())),
